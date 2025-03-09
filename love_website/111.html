@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>时光印记 | 给最特别的你</title>
+    <style>
+        :root {
+            --primary-color: #ff4d6d;
+            --text-glow: 0 0 20px rgba(255, 77, 109, 0.7);
+        }
+
+        body {
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+            background: #000;
+            font-family: 'Ma Shan Zheng', cursive;
+        }
+
+        .stage {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 1s ease;
+            pointer-events: none;
+        }
+
+        #photo-stage {
+            z-index: 3;
+        }
+
+        .photo {
+            position: absolute;
+            width: 200px;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 10px;
+            filter: drop-shadow(var(--text-glow));
+            opacity: 0;
+            transform: scale(0.5);
+            transition: all 1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        #text-stage {
+            z-index: 2;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .love-letter {
+            color: white;
+            width: 90%;
+            max-width: 800px;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(12px);
+            line-height: 1.8;
+            font-size: 1.3em;
+            text-align: center;
+        }
+
+        #video-stage {
+            z-index: 1;
+            background: #000;
+        }
+
+        #final-video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        #start-btn {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px 40px;
+            background: var(--primary-color);
+            border: none;
+            border-radius: 40px;
+            color: white;
+            font-size: 1.5em;
+            cursor: pointer;
+            z-index: 9999;
+        }
+    </style>
+</head>
+<body>
+    <button id="start-btn">📷 开启回忆之旅</button>
+
+    <div class="stage" id="photo-stage"></div>
+
+    <div class="stage" id="text-stage">
+        <div class="love-letter">
+            <p>小红书的评论区里<br>
+            你的文字像萤火虫般闯入我的夏天<br>
+            一句"喜欢云朵的形状"<br>
+            让两个相隔1000公里的灵魂<br>
+            在数据流中悄然共振 🌌</p>
+
+            <p>记得第一次视频通话时<br>
+            你身后是江南湿润的梅雨 🌧️<br>
+            我这边却是北方干燥的晚风 🍂<br>
+            我们笨拙地分享屏幕里的风景<br>
+            地铁呼啸而过的声音 🚇<br>
+            竟成了最动人的背景音乐 🎶</p>
+        </div>
+    </div>
+
+    <div class="stage" id="video-stage">
+        <video id="final-video" controls>
+            <source src="final-message.mp4" type="video/mp4">
+        </video>
+    </div>
+
+    <audio id="bgm" src="love-theme.mp3"></audio>
+
+    <script>
+        // 动画队列控制器
+        class PhotoAnimator {
+            constructor() {
+                this.photos = [];
+                this.currentIndex = 0;
+                this.stage = document.getElementById('photo-stage');
+            }
+
+            async loadPhotos() {
+                const promises = [];
+                for(let i = 1; i <= 52; i++) {
+                    const img = new Image();
+                    img.src = `images/${i}.jpg`;
+                    promises.push(new Promise(resolve => {
+                        img.onload = resolve;
+                        img.onerror = resolve;
+                    }));
+                    this.photos.push(img);
+                }
+                await Promise.all(promises);
+            }
+
+            createPhotoElement(img) {
+                const photo = img.cloneNode();
+                photo.style.position = 'absolute';
+                
+                // 随机飞入方向
+                const directions = ['top', 'right', 'bottom', 'left'];
+                const direction = directions[Math.floor(Math.random()*4)];
+                
+                switch(direction) {
+                    case 'top':
+                        photo.style.top = '-300px';
+                        photo.style.left = `${Math.random()*100}%`;
+                        break;
+                    case 'right':
+                        photo.style.left = '100%';
+                        photo.style.top = `${Math.random()*100}%`;
+                        break;
+                    case 'bottom':
+                        photo.style.top = '100%';
+                        photo.style.left = `${Math.random()*100}%`;
+                        break;
+                    case 'left':
+                        photo.style.left = '-300px';
+                        photo.style.top = `${Math.random()*100}%`;
+                        break;
+                }
+
+                return photo;
+            }
+
+            async animatePhoto(photo) {
+                return new Promise(resolve => {
+                    this.stage.appendChild(photo);
+
+                    // 飞入动画
+                    setTimeout(() => {
+                        photo.style.opacity = '1';
+                        photo.style.transform = 'translate(-50%, -50%) scale(1)';
+                        photo.style.left = '50%';
+                        photo.style.top = '50%';
+                    }, 100);
+
+                    // 停留2秒后消失
+                    setTimeout(() => {
+                        photo.style.opacity = '0';
+                        photo.style.transform = 'translate(-50%, -50%) scale(2)';
+                        setTimeout(() => {
+                            photo.remove();
+                            resolve();
+                        }, 1000);
+                    }, 2100);
+                });
+            }
+
+            async start() {
+                while(this.currentIndex < this.photos.length) {
+                    const photo = this.createPhotoElement(this.photos[this.currentIndex]);
+                    await this.animatePhoto(photo);
+                    this.currentIndex++;
+                }
+            }
+        }
+
+        // 主流程控制
+        async function main() {
+            try {
+                document.getElementById('start-btn').remove();
+                document.getElementById('photo-stage').style.opacity = 1;
+
+                // 初始化动画系统
+                const animator = new PhotoAnimator();
+                await animator.loadPhotos();
+
+                // 播放背景音乐
+                const bgm = document.getElementById('bgm');
+                await bgm.play().catch(() => {
+                    document.body.onclick = () => bgm.play();
+                });
+
+                // 开始照片动画
+                await animator.start();
+
+                // 显示告白文字
+                document.getElementById('photo-stage').style.opacity = 0;
+                document.getElementById('text-stage').style.opacity = 1;
+                await new Promise(r => setTimeout(r, 15000));
+
+                // 播放视频
+                document.getElementById('text-stage').style.opacity = 0;
+                document.getElementById('video-stage').style.opacity = 1;
+                bgm.pause();
+                document.getElementById('final-video').play();
+
+            } catch (error) {
+                console.error('流程异常:', error);
+            }
+        }
+
+        document.getElementById('start-btn').addEventListener('click', main);
+    </script>
+</body>
+</html>
